@@ -1,0 +1,23 @@
+[package]
+name = "ya-packet-trace"
+version = "0.1.0"
+edition = "2021"
+authors = ["Golem Factory <contact@golem.network>"]
+homepage = "https://github.com/golemfactory/ya-packet-trace"
+repository = "https://github.com/golemfactory/ya-packet-trace"
+
+[features]
+enable = []
+default = []
+
+[dependencies]
+log = "0.4"
+# fxhash was choosen as its fairly fast and reproducible,
+# unlike e.g. ahash, which may produce different results on
+# different machines.
+fxhash = "0.2"
+
+[dev-dependencies]
+once_cell = "1.16"
+regex = "1.7"
+serial_test = "0.9"
