@@ -1,13 +1,20 @@
 /// Logs location and hash of provided data
+#[cfg(feature = "enable")]
 #[macro_export]
 macro_rules! packet_trace {
     ($location:expr, $payload:block) => {
-        #[cfg(feature = "enable")]
         {
             let hash = $crate::helpers::do_hash($payload);
             $crate::helpers::log::trace!(target: "packet-trace", "{},{:016x}", $location, hash);
         }
     };
+}
+
+/// Logs location and hash of provided data
+#[cfg(not(feature = "enable"))]
+#[macro_export]
+macro_rules! packet_trace {
+    ($location:expr, $payload:block) => { };
 }
 
 /// Macro internals
