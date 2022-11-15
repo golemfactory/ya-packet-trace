@@ -18,6 +18,24 @@ macro_rules! packet_trace {
     ($location:expr, $payload:block) => {};
 }
 
+/// Logs location and hash of provided data
+#[cfg(feature = "enable")]
+#[macro_export]
+macro_rules! packet_trace_maybe {
+    ($location:expr, $maybe_payload:block) => {{
+        if let Some(payload) = $maybe_payload {
+            packet_trace!($location, { payload })
+        }
+    }};
+}
+
+/// Logs location and hash of provided data
+#[cfg(not(feature = "enable"))]
+#[macro_export]
+macro_rules! packet_trace_maybe {
+    ($location:expr, $maybe_payload:block) => {};
+}
+
 /// Macro internals
 ///
 /// While this module must be public due to the way Rust
