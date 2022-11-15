@@ -5,7 +5,8 @@ macro_rules! packet_trace {
     ($location:expr, $payload:block) => {
         {
             let hash = $crate::helpers::do_hash($payload);
-            $crate::helpers::log::trace!(target: "packet-trace", "{},{:016x}", $location, hash);
+            let ts = $crate::helpers::ts();
+            $crate::helpers::log::trace!(target: "packet-trace", "{},{:016x},{}", $location, hash, ts);
         }
     };
 }
@@ -14,7 +15,7 @@ macro_rules! packet_trace {
 #[cfg(not(feature = "enable"))]
 #[macro_export]
 macro_rules! packet_trace {
-    ($location:expr, $payload:block) => { };
+    ($location:expr, $payload:block) => {};
 }
 
 /// Macro internals
@@ -32,6 +33,11 @@ pub mod helpers {
         hasher.write(data.as_ref());
 
         hasher.finish()
+    }
+
+    pub fn ts() -> String {
+        const DATE_FORMAT_STR: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
+        chrono::Utc::now().format(DATE_FORMAT_STR).to_string()
     }
 }
 

@@ -11,6 +11,7 @@ enable = []
 default = []
 
 [dependencies]
+chrono = "0.4"
 log = "0.4"
 # fxhash was choosen as its fairly fast and reproducible,
 # unlike e.g. ahash, which may produce different results on
