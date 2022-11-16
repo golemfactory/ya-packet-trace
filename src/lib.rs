@@ -117,8 +117,10 @@ mod test {
         }
 
         fn log(&self, record: &log::Record) {
-            let mut buf = self.0.lock().unwrap();
-            writeln!(&mut buf, "{}", record.args()).unwrap()
+            if record.target() == "packet-trace" {
+                let mut buf = self.0.lock().unwrap();
+                writeln!(&mut buf, "{}", record.args()).unwrap()
+            }
         }
 
         fn flush(&self) {}
