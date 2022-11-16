@@ -75,6 +75,7 @@ mod test {
     #[cfg(feature = "enable")]
     use regex::Regex;
 
+    #[cfg(feature = "enable")]
     use crate::DATE_FORMAT_STR;
 
     struct StringLog(Arc<Mutex<String>>);
