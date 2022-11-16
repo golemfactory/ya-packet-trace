@@ -36,6 +36,9 @@ macro_rules! packet_trace_maybe {
     ($location:expr, $maybe_payload:block) => {};
 }
 
+/// Date format used for timestamps
+pub const DATE_FORMAT_STR: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
+
 /// Macro internals
 ///
 /// While this module must be public due to the way Rust
@@ -54,8 +57,9 @@ pub mod helpers {
     }
 
     pub fn ts() -> String {
-        const DATE_FORMAT_STR: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
-        chrono::Utc::now().format(DATE_FORMAT_STR).to_string()
+        chrono::Utc::now()
+            .format(crate::DATE_FORMAT_STR)
+            .to_string()
     }
 }
 
@@ -70,6 +74,8 @@ mod test {
 
     #[cfg(feature = "enable")]
     use regex::Regex;
+
+    use crate::DATE_FORMAT_STR;
 
     struct StringLog(Arc<Mutex<String>>);
 
@@ -127,11 +133,24 @@ mod test {
     #[cfg(feature = "enable")]
     #[test]
     #[serial]
+    pub fn test_date() {
+        StringLog::clear();
+
+        packet_trace!("test-date", { &[1, 2, 3] });
+        let output = StringLog::get_string();
+        let date = &output["test-date,0123456789abcdef,".len()..output.len() - 1];
+
+        assert!(chrono::DateTime::parse_from_str(&date, DATE_FORMAT_STR).is_ok());
+    }
+
+    #[cfg(feature = "enable")]
+    #[test]
+    #[serial]
     pub fn test_hash() {
         StringLog::clear();
 
         packet_trace!("test-foo", { &[1, 2, 3] });
-        let expected = Regex::new(r#"test-foo,[0-9A-Fa-f]{16}\n"#).unwrap();
+        let expected = Regex::new(r#"test-foo,[0-9A-Fa-f]{16}.*\n"#).unwrap();
 
         assert!(expected.is_match(&StringLog::get_string()));
     }
@@ -144,7 +163,7 @@ mod test {
             StringLog::clear();
 
             packet_trace!("test-foo", { &[1, 2, 3] });
-            let expected = Regex::new(r#"test-foo,[0-9A-Fa-f]{16}\n"#).unwrap();
+            let expected = Regex::new(r#"test-foo,[0-9A-Fa-f]{16}.*\n"#).unwrap();
 
             assert!(expected.is_match(&StringLog::get_string()));
         }
@@ -153,7 +172,7 @@ mod test {
             StringLog::clear();
 
             packet_trace!("test-bar", { &[1, 2, 3] });
-            let expected = Regex::new(r#"test-bar,[0-9A-Fa-f]{16}\n"#).unwrap();
+            let expected = Regex::new(r#"test-bar,[0-9A-Fa-f]{16}.*\n"#).unwrap();
 
             assert!(expected.is_match(&StringLog::get_string()));
         }
@@ -170,9 +189,9 @@ mod test {
         packet_trace!("test-baz", { vec![0u8, 12, 13, 22] });
         let expected = Regex::new(&format!(
             "{}{}{}",
-            r#"test-foo,[0-9A-Fa-f]{16}\n"#,
-            r#"test-bar,[0-9A-Fa-f]{16}\n"#,
-            r#"test-baz,[0-9A-Fa-f]{16}\n"#,
+            r#"test-foo,[0-9A-Fa-f]{16}.*\n"#,
+            r#"test-bar,[0-9A-Fa-f]{16}.*\n"#,
+            r#"test-baz,[0-9A-Fa-f]{16}.*\n"#,
         ))
         .unwrap();
 
