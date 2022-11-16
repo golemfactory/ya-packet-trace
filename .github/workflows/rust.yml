@@ -68,3 +68,14 @@ jobs:
         with:
           command: test
           args: --features enable
+
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+
+      - name: cargo clippy enable
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --features enable
