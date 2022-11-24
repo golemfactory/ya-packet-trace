@@ -36,7 +36,7 @@ macro_rules! packet_trace {
 macro_rules! packet_trace_maybe {
     ($location:expr, $maybe_payload:block) => {{
         if let Some(payload) = $maybe_payload {
-            packet_trace!($location, { payload })
+            $crate::packet_trace!($location, { payload })
         }
     }};
 }
