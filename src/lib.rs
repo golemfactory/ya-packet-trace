@@ -1,14 +1,26 @@
+pub enum WriteTarget {
+    Log,
+    Write(Box<dyn std::io::Write + Send>),
+}
+
+#[cfg(feature = "enable")]
+static WRITE_TARGET: std::sync::Mutex<WriteTarget> = std::sync::Mutex::new(WriteTarget::Log);
+
+#[allow(unused_variables)]
+pub fn set_write_target(wt: WriteTarget) {
+    #[cfg(feature = "enable")]
+    {
+        *WRITE_TARGET.lock().unwrap() = wt;
+    }
+}
+
 /// Logs location and hash of provided data
 #[cfg(feature = "enable")]
 #[macro_export]
 macro_rules! packet_trace {
-    ($location:expr, $payload:block) => {
-        {
-            let hash = $crate::helpers::do_hash($payload);
-            let ts = $crate::helpers::ts();
-            $crate::helpers::log::trace!(target: "packet-trace", "{},{:016x},{}", $location, hash, ts);
-        }
-    };
+    ($location:expr, $payload:block) => {{
+        $crate::helpers::do_write($location, $payload);
+    }};
 }
 
 /// Logs location and hash of provided data
@@ -44,8 +56,23 @@ pub const DATE_FORMAT_STR: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
 /// While this module must be public due to the way Rust
 /// expands declarative macros, no guarantees are made regarding
 /// this module.
+#[cfg(feature = "enable")]
 pub mod helpers {
-    pub use log;
+    pub fn do_write(location: impl std::fmt::Display, payload: impl AsRef<[u8]>) {
+        use crate::{WriteTarget, WRITE_TARGET};
+
+        let hash = do_hash(payload);
+        let ts = ts();
+
+        match &mut *WRITE_TARGET.lock().unwrap() {
+            WriteTarget::Log => {
+                log::trace!(target: "packet-trace", "{},{:016x},{}", location, hash, ts);
+            }
+            WriteTarget::Write(w) => {
+                writeln!(w, "{},{:016x},{}", location, hash, ts).unwrap();
+            }
+        }
+    }
 
     pub fn do_hash(data: impl AsRef<[u8]>) -> u64 {
         use std::hash::Hasher;
@@ -126,6 +153,20 @@ mod test {
         fn flush(&self) {}
     }
 
+    impl std::io::Write for &StringLog {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            let text = std::str::from_utf8(buf).unwrap();
+            let mut string = self.0.lock().unwrap();
+            string.push_str(text);
+
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
     #[test]
     fn test_invocation_compiles() {
         if false {
@@ -199,6 +240,27 @@ mod test {
         .unwrap();
 
         assert!(expected.is_match(&StringLog::get_string()));
+    }
+
+    #[cfg(feature = "enable")]
+    #[test]
+    #[serial]
+    pub fn test_custom_write_target() {
+        use crate::{set_write_target, WriteTarget};
+
+        StringLog::clear();
+
+        set_write_target(WriteTarget::Write(Box::new(StringLog::global())));
+        packet_trace!("test-foo", { &[1, 2, 3] });
+        set_write_target(WriteTarget::Log);
+
+        let output = StringLog::get_string();
+
+        let expected = Regex::new(r#"test-foo,[0-9A-Fa-f]{16}.*\n"#).unwrap();
+        assert!(expected.is_match(&output));
+
+        let date = &output["test-date,0123456789abcdef,".len()..output.len() - 1];
+        assert!(chrono::DateTime::parse_from_str(&date, DATE_FORMAT_STR).is_ok());
     }
 
     #[cfg(not(feature = "enable"))]
