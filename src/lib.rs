@@ -61,15 +61,16 @@ pub mod helpers {
     pub fn do_write(location: impl std::fmt::Display, payload: impl AsRef<[u8]>) {
         use crate::{WriteTarget, WRITE_TARGET};
 
+        let sz = payload.as_ref().len();
         let hash = do_hash(payload);
         let ts = ts();
 
         match &mut *WRITE_TARGET.lock().unwrap() {
             WriteTarget::Log => {
-                log::trace!(target: "packet-trace", "{},{:016x},{}", location, hash, ts);
+                log::trace!(target: "packet-trace", "{},{:016x},{},{}", location, hash, ts, sz);
             }
             WriteTarget::Write(w) => {
-                writeln!(w, "{},{:016x},{}", location, hash, ts).unwrap();
+                writeln!(w, "{},{:016x},{},{}", location, hash, ts, sz).unwrap();
             }
         }
     }
@@ -182,7 +183,7 @@ mod test {
 
         packet_trace!("test-date", { &[1, 2, 3] });
         let output = StringLog::get_string();
-        let date = &output["test-date,0123456789abcdef,".len()..output.len() - 1];
+        let date = &output["test-date,0123456789abcdef,".len()..output.len() - ",3\n".len()];
 
         assert!(chrono::DateTime::parse_from_str(&date, DATE_FORMAT_STR).is_ok());
     }
@@ -259,7 +260,7 @@ mod test {
         let expected = Regex::new(r#"test-foo,[0-9A-Fa-f]{16}.*\n"#).unwrap();
         assert!(expected.is_match(&output));
 
-        let date = &output["test-date,0123456789abcdef,".len()..output.len() - 1];
+        let date = &output["test-date,0123456789abcdef,".len()..output.len() - ",3\n".len()];
         assert!(chrono::DateTime::parse_from_str(&date, DATE_FORMAT_STR).is_ok());
     }
 
