@@ -3,6 +3,16 @@ pub enum WriteTarget {
     Write(Box<dyn std::io::Write + Send>),
 }
 
+pub fn try_extract_from_ip_frame(frame: impl AsRef<[u8]>) -> Option<Vec<u8>> {
+    let frame: &[u8] = frame.as_ref();
+
+    if frame.len() > 55 && frame[12..14] == [0x08, 0x00] {
+        Some(frame[54..].to_owned())
+    } else {
+        None
+    }
+}
+
 #[cfg(feature = "enable")]
 static WRITE_TARGET: std::sync::Mutex<WriteTarget> = std::sync::Mutex::new(WriteTarget::Log);
 
