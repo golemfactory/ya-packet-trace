@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Golem Factory <contact@golem.network>"]
 homepage = "https://github.com/golemfactory/ya-packet-trace"
 repository = "https://github.com/golemfactory/ya-packet-trace"
+license = "GPL-3.0"
 
 [features]
 enable = []
